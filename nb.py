@@ -7,70 +7,66 @@ Original file is located at
     https://colab.research.google.com/drive/1lx5AdiJhaAYH7rwTuFAxVK93icncuDae
 """
 
-def feature_count(df,col, count):  #constructing a dictionary with key = unique feature values and value = list of count_yes, count_no 
-  featuredict = {}                  # eg: {sunny = [count_yes, count_no], ...}
-  for i in range(len(col)):
-    for j in df[col[i]].unique():
+def feature_count(df):
+  table = {}
+  output = df['Buy_Computer'].values.tolist()
+  print('Output => ',output)
+  attributes = df.columns.tolist()
+  attributes.remove('id')
+  attributes.remove('Buy_Computer')
+  for each in attributes:
+    values = list(set(df[each].values.tolist()))
+    input = df[each].values.tolist()
+    for val in values:
       cy = 0
       cn = 0
-      lis = []
-      for k in range(len(df[col[i]])):
-        row_list = df.iloc[k].tolist()
-        if row_list[i+1] == j and row_list[-1] == 'yes':
-          cy += 1
-        elif row_list[i+1] == j and row_list[-1] == 'no':
-          cn += 1
-      lis.append(cy)
-      lis.append(cn)
-      featuredict[j] = lis
+      for i in range(0,len(input)):
+        if input[i] == val:
+          if output[i] == 'yes':
+            cy = cy + 1
+          elif output[i] == 'no':
+            cn = cn + 1
+      table[val] = [cy,cn]
+  print(table)
+  return table
 
-  return featuredict
-
-def predict(df,test, featuredict, count):  #predicting the probability for the test case
-  prob_y = 1
-  prob_n = 1
-  iter = 0 
-  for i in test:
-    counter_y = featuredict[i][0]
-    counter_n = featuredict[i][1]
+def predict(df, test, table, count):
+  level = 1
+  total = sum(count)
+  prob_y = count[0]/total
+  prob_n = count[1]/total
+  for each in test:
+    counter_y = table[each][0]
+    counter_n = table[each][1]
     total_y = count[0]
     total_n = count[1]
 
-    if featuredict[i][0] == 0:
-      counter_y = featuredict[i][0] + 1/(len(df[iter + 1].unique()))
-      total_y += 1
+    if counter_y == 0:
+      counter_y = counter_y + 1/(len(df[level].unique()))
+      total_y = total_y + 1
+    if counter_n == 0:
+      counter_n = counter_n + 1/(len(df[level].unique()))
+      total_n = total_n + 1
 
-    if featuredict[i][1] == 0:
-      counter_n = featuredict[i][1] + 1/(len(df[iter + 1].unique()))
-      total_n += 1
+    prob_y = prob_y * (counter_y/total_y)
+    prob_n = prob_n * (counter_n/total_n)
 
-    prob_y = prob_y * counter_y / total_y
-    prob_n = prob_n * counter_n / total_n
-    iter += 1
-
-  prob_y = prob_y * count[0]/len(df)
-  prob_n = prob_n * count[1]/len(df)
-
+    level = level + 1
+    
   prob_yes = prob_y/(prob_y + prob_n)
   prob_no = prob_n/(prob_y + prob_n)
 
-  print("probability of playing:", prob_yes)
-  print("Probability of not playing:", prob_no)
+  print('Probability(Yes) = ',prob_yes)
+  print('Probability(No) = ',prob_no)
 
-  if prob_yes > prob_no:
-    print("Playing = Yes")
+  if(prob_yes>prob_no):
+    print('\nOutput => Yes')
   else:
-    print("Playing = No")
-
-def main():
-  df = pd.read_csv("Buy_Computer.csv")
-  col = df.columns.tolist()
-  col.pop(0)
-  col.pop(-1)
-  count = list(df['Buy_Computer'].value_counts())
-  featuredict = feature_count(df,col,count)
-  test = ['youth','medium','yes','excellent']
-  predict(df,test, featuredict, count)
+    print('\nOutput => No')
 
 import pandas as pd
-main()
+df = pd.read_csv('Buy_Computer.csv')
+table = feature_count(df)
+count = df['Buy_Computer'].value_counts()
+test = ['youth','medium','yes','excellent']
+predict(df,test,table,count)
